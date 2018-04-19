@@ -1,0 +1,322 @@
+https://medium.com/@josemarcialportilla/installing-scala-and-spark-on-ubuntu-5665ee4b62b1
+
+--------------------------------------------------------------------------------
+-- Step 1: Install Java
+--------------------------------------------------------------------------------
+
+Check to see if Java is already installed by typing:
+
+$ java -version
+If you see something like “The program ‘java’ can be found in the following packages…”, 
+it probably means you actually need to install Java.
+
+Update the package index with the following command:
+$ sudo apt-get update
+
+Install the JDK with the following command:
+$ sudo apt-get install default-jdk
+
+--------------------------------------------------------------------------------
+-- Step 2: Install Scala
+--------------------------------------------------------------------------------
+Install scala with the following command:
+$ sudo apt-get install scala
+
+Type scala into your terminal:
+$ scala
+
+You should see the scala REPL running. Test it with:
+println(“Hello World”)
+
+You can then quit the Scala REPL with
+:q
+
+--------------------------------------------------------------------------------
+-- Step 3: Install Spark
+--------------------------------------------------------------------------------
+Next it’s time to install Spark. We need git for this, so in your terminal type:
+$ sudo apt-get install git
+
+Might as well install this too
+$ sudo apt-get install git-gui  (perhaps just use install git-all above)
+
+Next, go to https://spark.apache.org/downloads.html and download a pre-built for 
+Hadoop 2.7 version of Spark (preferably Spark 2.0 or later). Then download 
+the .tgz file and remember where you save it on your computer.
+
+Then in your terminal change directory to where you saved that .tgz file (or 
+just move the file to your home folder), then use
+$ tar xvf spark-2.3.0-bin-hadoop2.7.tgz
+(Your version numbers may differ).
+
+Then once it’s done extracting the Spark folder, use:
+$ cd spark-2.0.2-bin-hadoop2.7
+
+then use:
+$ cd bin
+
+and then type:
+$ ./spark-shell
+
+and you should see the spark shell pop up. This is where you can load .scala 
+scripts. You can confirm that this is working by typing something like:
+println(“Spark shell is running”)
+
+Lowering Verbosity Level of Logger
+https://www.analyticsvidhya.com/blog/2016/09/comprehensive-introduction-to-apache-spark-rdds-dataframes-using-pyspark/
+
+... lower the verbosity level of the log4j logger in log4j.properties.
+
+$ cp conf/log4j.properties.template conf/log4j.properties
+$ nano conf/log4j.properties
+
+After opening the file ‘log4j.properties’, we need to replace following line:
+
+log4j.rootCategory=INFO, console
+
+with
+
+log4j.rootCategory=ERROR, console
+
+
+
+Install Hadoop
+https://www.davidadrian.cc/posts/2017/08/how-to-spark-cluster/
+
+Up to this point, you may see this warning at Spark initialization:
+
+WARN NativeCodeLoader: Unable to load native-hadoop library for your 
+platform... using builtin-java classes where applicable".
+
+To solve this problem, we will have to install Hadoop. This is optional 
+because Spark is going to run anyway, but I guess there must be some 
+performance improvements of using native Hadoop over some kind of adapters.
+
+
+Download Hadoop source here. (http://apache.rediris.es/hadoop/common/)
+
+You are free to install whatever version you like, but make sure you choose 
+a version > 2.7 because it’s a Spark’s requirement.
+
+hadoop-2.9.0.tar.gz
+
+Uncompress in your home directory.
+$ tar xvf hadoop-2.9.0.tar.gz
+
+Add the following lines at the end of your .bashrc file:
+
+# Hadoop
+export HADOOP_HOME="/home/steve/hadoop-2.8.0"
+export LD_LIBRARY_PATH=$HADOOP_HOME/lib/native:$LD_LIBRARY_PATH
+
+Test your Hadoop installation by starting pyspark and make sure you don’t see the warning.
+
+steve@ubuntu:~/Downloads/spark-2.3.0-bin-hadoop2.7$ ./bin/pyspark
+Python 2.7.12 (default, Dec  4 2017, 14:50:18) 
+[GCC 5.4.0 20160609] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+2018-04-14 07:32:28 WARN  Utils:66 - Your hostname, ubuntu resolves to a loopback 
+address: 127.0.1.1; using 172.16.35.133 instead (on interface ens33)
+2018-04-14 07:32:28 WARN  Utils:66 - Set SPARK_LOCAL_IP if you need to bind to another address
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+Welcome to
+      ____              __
+     / __/__  ___ _____/ /__
+    _\ \/ _ \/ _ `/ __/  '_/
+   /__ / .__/\_,_/_/ /_/\_\   version 2.3.0
+      /_/
+
+Using Python version 2.7.12 (default, Dec  4 2017 14:50:18)
+SparkSession available as 'spark'.
+>>>
+
+--------------------------------------------------------------------------------
+-- Step 4: Running PySpark
+--------------------------------------------------------------------------------
+
+$ ./bin/pyspark
+
+Read csv file into dataframe
+$ ./bin/pyspark --packages com.databricks:spark-csv_2.10:1.3.0
+$ ./bin/pyspark --packages com.databricks:spark-csv_2.11:1.5.0
+
+data1 = sqlContext.read.format('com.databricks.spark.csv').option('header','true').load('Data.csv')
+
+data1.registerAsTable('data1_table')
+data1.registerTempTable('data1_table')
+
+sqlContext.sql('select * from data1_table').show()
+
+Run script using spark-submit
+$ ./bin/spark-submit test.py
+
+from pyspark import SparkContext
+sc = SparkContext("local", "Simple App")
+
+from pyspark.sql import SQLContext
+sqlContext = SQLContext(sc)
+
+data1 = sqlContext.read.format('com.databricks.spark.csv').option('header','true').load('file:///home/steve/Data.csv')
+
+data1.registerTempTable('data1_table')
+
+print(sqlContext.sql('select * from data1_table').show())
+
+#data1.write.csv('Data_out.csv')
+
+
+--------------------------------------------------------------------------------
+Move everything to /opt
+--------------------------------------------------------------------------------
+
+Move Spark to /opt/
+
+$ sudo mv spark-2.3.0-bin-hadoop2.7 /opt/
+$ sudo mv spark-2.3.0-bin-hadoop2.7 spark
+
+Edit .bashrc file:
+$ nano ~/.bashrc
+
+Set the SPARK_HOME and PYTHONPATH by adding following lines at the bottom of this file
+# Spark
+export SPARK_HOME=/opt/spark
+export PYTHONPATH=$SPARK_HOME/python
+
+Restart bashrc
+$ . ~/.bashrc
+
+Move Hadoop to /opt/
+
+$ sudo mv hadoop-2.9.0 /opt/
+$ sudo mv hadoop-2.9.0 hadoop
+
+Edit .bashrc file:
+$ nano ~/.bashrc
+
+# Hadoop
+export HADOOP_HOME="/home/steve/hadoop"
+export LD_LIBRARY_PATH=$HADOOP_HOME/lib/native:$LD_LIBRARY_PATH
+
+# Hadoop
+export HADOOP_HOME="/opt/hadoop"
+export LD_LIBRARY_PATH=$HADOOP_HOME/lib/native:$LD_LIBRARY_PATH
+
+Restart bashrc
+$ . ~/.bashrc
+
+
+Edit Path
+$ nano ~/.profile
+ 
+# set PATH so it includes user's private bin directories
+PATH="$HOME/bin:$HOME/.local/bin:/opt/spark/bin:$PATH"
+
+Log-out and log back in
+
+
+
+$ nano ~/.ipython/profile_default/startup/load_spark_environment_variables.py
+Paste some lines in this file.
+import os
+import sys
+
+if 'SPARK_HOME' not in os.environ:
+    os.environ['SPARK_HOME'] = '/opt/spark'
+
+if '/opt/spark/python' not in sys.path:
+    sys.path.insert(0, '/opt/spark/python')
+
+Resources
+https://www.analyticsvidhya.com/blog/2016/10/spark-dataframe-and-operations/
+
+--------------------------------------------------------------------------------
+Sublime Text Editor
+--------------------------------------------------------------------------------
+https://www.sublimetext.com/docs/3/linux_repositories.html
+
+Install the GPG key:
+$ wget -qO - https://download.sublimetext.com/sublimehq-pub.gpg | sudo apt-key add -
+
+Ensure apt is set up to work with https sources:
+$ sudo apt-get install apt-transport-https
+
+Select the channel to use:
+Stable
+echo "deb https://download.sublimetext.com/ apt/stable/" | sudo tee /etc/apt/sources.list.d/sublime-text.list
+
+Update apt sources and install Sublime Text
+$ sudo apt-get update
+$ sudo apt-get install sublime-text
+
+Always show whitespace
+go to Preferences -> Settings - user and add the following line
+"draw_white_space": "all"
+
+Sublime Packages
+- Install Package Control
+- Install Predawn Color Scheme
+- Install Material Theme
+  https://github.com/CoreyMSchafer/dotfiles/blob/master/init/Preferences.sublime-settings
+- Install BracketHighlighter
+- Install SidebarEnhancements
+- Install Package: Anaconda
+  https://github.com/CoreyMSchafer/dotfiles/blob/master/init/Anaconda.sublime-settings
+
+----------------------------------------------------------------------------
+
+import platform
+import sys
+
+print('---------------')
+print("python version : " + platform.python_version())
+print("python location: " + sys.executable)
+print('---------------')
+print(sys.path)
+print('---------------')
+
+sys.path.insert(0, "/opt/spark/python/lib/py4j-0.10.6-src.zip")
+sys.path.insert(0, "/opt/spark/python")
+
+# sys.path.insert(0, "/home/steve/hadoop-2.8.0")
+# sys.path.insert(0, "/home/steve/hadoop-2.8.0/lib/native")
+
+print('---------------')
+print(sys.path)
+print('---------------')
+
+
+from pyspark import SparkContext
+from pyspark.sql import SQLContext
+
+sc = SparkContext("local", "Simple App")
+
+sqlContext = SQLContext(sc)
+
+data1 = sqlContext.read.format('com.databricks.spark.csv') \
+    .option('header', 'true').load('file:///home/steve/Data.csv')
+
+data1.registerTempTable('data1_table')
+
+print(sqlContext.sql('select * from data1_table').show())
+
+# data1.write.csv('Data_out.csv')
+
+
+----------------------------------------------------------------------------
+Fix import pyspark error on command line python
+
+https://stackoverflow.com/questions/26533169/why-cant-pyspark-find-py4j-java-gateway
+
+Add to .bashrc
+export PYTHONPATH=$SPARK_HOME/python/lib/py4j-0.10.6-src.zip:$PYTHONPATH
+export PYTHONPATH=$SPARK_HOME/lib/py4j-0.10.6-src.zip:$PYTHONPATH
+
+$ sudo apt-install python-pip
+$ pip install findspark
+>>> import findspark
+>>> findspark.init()
+
+--------------------------------------------------------------------------------
+-- end of file
+--------------------------------------------------------------------------------
